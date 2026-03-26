@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Archie — The AI Learning Robot</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:#020810;color:#E8F2FF;font-family:'Inter',sans-serif;overflow:hidden;}
+
+.stars{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;}
+.star{position:absolute;border-radius:50%;background:white;}
+@keyframes twinkle{0%,100%{opacity:0.1}50%{opacity:0.9}}
+
+.screen{display:none;position:fixed;inset:0;z-index:1;flex-direction:column;align-items:center;justify-content:center;padding:2rem;}
+.screen.active{display:flex;}
+
+/* SPLASH */
+#splash{text-align:center;}
+.splash-logo{font-family:'Orbitron',monospace;font-size:36px;font-weight:700;color:#4A90E2;letter-spacing:6px;text-transform:uppercase;margin-bottom:10px;opacity:0;transition:opacity 2s ease;}
+.splash-tag{font-size:11px;color:#E8F2FF;letter-spacing:3px;text-transform:uppercase;margin-bottom:3.5rem;opacity:0;transition:opacity 2s ease;}
+.splash-btn{background:transparent;border:1px solid #4A90E2;color:#93C5FD;font-size:13px;letter-spacing:2px;padding:14px 40px;border-radius:30px;cursor:pointer;font-family:'Inter',sans-serif;text-transform:uppercase;transition:all 0.3s;opacity:0;animation:blink 2s ease-in-out infinite;}
+.splash-btn.ready{opacity:1;}
+.splash-btn:hover{border-color:#93C5FD;color:#E8F2FF;}
+@keyframes blink{0%,100%{opacity:0.5;box-shadow:0 0 12px rgba(74,144,226,0.3)}50%{opacity:1;box-shadow:0 0 35px rgba(74,144,226,0.9),0 0 60px rgba(74,144,226,0.4)}}
+
+/* CINEMATIC */
+.cin-screen{opacity:0;}
+.cin-wrap{max-width:560px;width:100%;text-align:center;}
+.cin-big{font-family:'Orbitron',monospace;font-size:clamp(26px,5.5vw,48px);font-weight:700;color:#fff;line-height:1.3;margin-bottom:1.2rem;}
+.cin-normal{font-size:clamp(17px,3vw,24px);color:#E8F2FF;line-height:1.9;margin-bottom:0.5rem;font-weight:300;}
+.cin-blue{font-size:clamp(17px,3vw,24px);color:#4A90E2;font-weight:500;margin-bottom:0.5rem;}
+.cin-stat{font-family:'Orbitron',monospace;font-size:clamp(32px,7vw,56px);font-weight:700;color:#4A90E2;margin:1.4rem 0 0.4rem;}
+.cin-source{font-size:11px;color:#3a6a9a;letter-spacing:1px;margin-bottom:1.4rem;font-style:italic;}
+.cin-space{height:1rem;display:block;}
+.cin-line{opacity:0;transition:opacity 1.8s ease;}
+.cin-line.visible{opacity:1;}
+
+/* WAITLIST BUTTON */
+.waitlist-btn{margin-top:2.5rem;padding:16px 52px;border-radius:30px;border:none;background:#4A90E2;color:white;font-family:'Orbitron',monospace;font-size:13px;font-weight:700;letter-spacing:2px;cursor:pointer;text-transform:uppercase;opacity:0;pointer-events:none;transition:opacity 1.5s ease;animation:btnPulse 2s ease-in-out infinite;}
+.waitlist-btn.visible{opacity:1;pointer-events:auto;}
+.waitlist-btn:hover{background:#5a9ff2;transform:translateY(-2px);}
+.waitlist-btn:active{transform:scale(0.97);}
+@keyframes btnPulse{0%,100%{box-shadow:0 0 20px rgba(74,144,226,0.4)}50%{box-shadow:0 0 45px rgba(74,144,226,0.9),0 0 70px rgba(74,144,226,0.4)}}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(2,8,16,0.92);backdrop-filter:blur(8px);z-index:100;align-items:center;justify-content:center;padding:12px;}
+.modal-overlay.active{display:flex;}
+.modal{background:#0d1117;border:1px solid #1E40AF;border-radius:20px;padding:44px 36px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;position:relative;animation:modalIn 0.35s cubic-bezier(0.16,1,0.3,1);}
+@media(max-width:480px){.modal{padding:28px 16px;border-radius:16px;}}
+@keyframes modalIn{from{opacity:0;transform:scale(0.93) translateY(18px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-close{position:absolute;top:16px;right:18px;background:none;border:none;color:#3a6a9a;font-size:22px;cursor:pointer;line-height:1;transition:color 0.2s;}
+.modal-close:hover{color:#E8F2FF;}
+
+#step-join{display:block;}
+#step-success{display:none;}
+
+.modal-eyebrow{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;color:#4A90E2;text-transform:uppercase;margin-bottom:10px;}
+.modal-title{font-family:'Orbitron',monospace;font-size:22px;font-weight:700;color:#E8F2FF;line-height:1.25;margin-bottom:8px;}
+.modal-sub{font-size:13px;color:#7BB3F0;line-height:1.7;margin-bottom:28px;}
+
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#4A90E2;font-weight:600;margin-bottom:7px;}
+.field input{width:100%;background:#0A1628;border:1px solid #4A90E2;border-radius:12px;padding:13px 15px;font-size:16px;font-family:'Inter',sans-serif;color:#E8F2FF;outline:none;transition:border-color 0.2s;}
+.field input::placeholder{color:#3a6a9a;}
+.field input:focus{border-color:#93C5FD;}
+
+.btn-modal{width:100%;margin-top:6px;background:#4A90E2;color:white;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:2px;padding:15px;border:none;border-radius:30px;cursor:pointer;text-transform:uppercase;transition:all 0.2s;}
+.btn-modal:hover{background:#5a9ff2;box-shadow:0 6px 30px rgba(74,144,226,0.4);transform:translateY(-1px);}
+.btn-modal:active{transform:scale(0.97);}
+.btn-modal:disabled{opacity:0.45;cursor:not-allowed;transform:none;box-shadow:none;}
+.modal-fine{text-align:center;font-size:11px;color:#3a6a9a;margin-top:14px;}
+
+.success-icon{width:60px;height:60px;border-radius:50%;background:rgba(74,144,226,0.1);border:2px solid #4A90E2;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;animation:successPop 0.45s cubic-bezier(0.16,1,0.3,1);}
+@keyframes successPop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.share-title{font-family:'Orbitron',monospace;font-size:17px;font-weight:700;text-align:center;margin-bottom:8px;}
+.share-sub{font-size:13px;color:#7BB3F0;text-align:center;line-height:1.7;margin-bottom:22px;}
+.share-copy-box{background:#0A1628;border:1px solid #1E40AF;border-radius:10px;padding:13px 15px;font-size:12px;color:#c0d0e8;line-height:1.6;margin-bottom:14px;}
+.share-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.btn-share{background:transparent;border:1px solid #1E40AF;color:#E8F2FF;font-family:'Inter',sans-serif;font-size:12px;font-weight:500;padding:11px 14px;border-radius:30px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:7px;}
+.btn-share:hover{border-color:#4A90E2;color:#93C5FD;}
+.btn-copy{width:100%;background:transparent;border:1px solid rgba(30,64,175,0.4);color:#3a6a9a;font-family:'Inter',sans-serif;font-size:11px;padding:10px;border-radius:30px;cursor:pointer;letter-spacing:0.5px;transition:all 0.2s;}
+.btn-copy:hover{border-color:#1E40AF;color:#7BB3F0;}
+@media(max-width:480px){.modal{padding:32px 20px;border-radius:16px;}}
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<!-- Persistent wordmark -->
+<div id="wordmark" style="position:fixed;top:24px;left:32px;z-index:50;font-family:'Orbitron',monospace;font-size:15px;font-weight:700;color:#4A90E2;letter-spacing:4px;text-transform:uppercase;opacity:0;transition:opacity 1s ease;pointer-events:none;">ARCHIE</div>
+
+<!-- SPLASH -->
+<div class="screen active" id="splash">
+  <div class="splash-logo" id="splashLogo">ARCHIE</div>
+  <div class="splash-tag" id="splashTag">The AI Learning Robot</div>
+  <button class="splash-btn" id="splashBtn" onclick="startExperience()">Tap to begin</button>
+</div>
+
+<!-- SC1 -->
+<div class="screen cin-screen" id="sc1">
+  <div class="cin-wrap" id="sc1content"></div>
+</div>
+
+<!-- SC2 -->
+<div class="screen cin-screen" id="sc2">
+  <div class="cin-wrap" id="sc2content"></div>
+</div>
+
+<!-- SC3 -->
+<div class="screen cin-screen" id="sc3">
+  <div class="cin-wrap" id="sc3content"></div>
+  <button class="waitlist-btn" id="waitlistBtn" onclick="openModal()">Join the Waitlist</button>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div id="step-join">
+      <div class="modal-eyebrow">Early Access</div>
+      <h2 class="modal-title">Join the Waitlist</h2>
+      <p class="modal-sub">Be first in line for early access and launch updates.</p>
+      <div class="field"><label for="fname">First Name</label><input type="text" id="fname" placeholder="Your first name" autocomplete="given-name"/></div>
+      <div class="field"><label for="email">Email</label><input type="email" id="email" placeholder="your@email.com" autocomplete="email"/></div>
+      <button class="btn-modal" id="join-btn" onclick="submitWaitlist()">Join the Waitlist</button>
+      <p class="modal-fine">No spam. Only Archie launch updates.</p>
+    </div>
+    <div id="step-success">
+      <div class="success-icon">
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><polyline points="4,13 10,20 22,6" stroke="#4A90E2" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <h2 class="share-title">You're in. 🚀</h2>
+      <p class="share-sub" id="success-name">Archie is coming. Your AI journey starts soon.</p>
+      <div class="share-copy-box">I just joined the waitlist for Archie — an app that helps beginners learn AI. 👇</div>
+      <div class="share-btns">
+        <button class="btn-share" onclick="shareTwitter()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          Share on X
+        </button>
+        <button class="btn-share" onclick="copyAndInstagram()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+          Instagram
+        </button>
+      </div>
+      <button class="btn-copy" id="copyBtn" onclick="copyLink()">Copy link to share</button>
+    </div>
+  </div>
+</div>
+
+<audio id="cinAudio" loop preload="auto"><source src="music.mp3" type="audio/mpeg"/></audio>
+
+<script>
+// STARS
+(function(){
+  var el=document.getElementById('stars');
+  for(var i=0;i<140;i++){
+    var s=document.createElement('div');s.className='star';
+    var sz=Math.random()*2+0.3;
+    s.style.cssText='width:'+sz+'px;height:'+sz+'px;top:'+Math.random()*100+'%;left:'+Math.random()*100+'%;animation:twinkle '+(Math.random()*4+2).toFixed(1)+'s ease-in-out infinite '+(-(Math.random()*6)).toFixed(1)+'s;';
+    el.appendChild(s);
+  }
+})();
+
+// SPLASH FADE IN
+setTimeout(function(){
+  document.getElementById('splashLogo').style.opacity='1';
+  document.getElementById('splashTag').style.opacity='1';
+  setTimeout(function(){document.getElementById('splashBtn').classList.add('ready');},1200);
+},300);
+
+// CINEMATIC CONTENT
+var cinContent={
+  sc1:[
+    {t:'AI is the fastest growing technology in human history.',cls:'cin-big',delay:800},
+    {t:'',cls:'cin-space',delay:0},
+    {t:'Faster than the printing press.',cls:'cin-normal',delay:3200},
+    {t:'Faster than electricity.',cls:'cin-normal',delay:4600},
+    {t:'Faster than the internet.',cls:'cin-normal',delay:6000},
+    {t:'Faster than the smartphone.',cls:'cin-normal',delay:7400},
+    {t:'',cls:'cin-space',delay:0},
+    {t:"And it's just getting started.",cls:'cin-blue',delay:9200}
+  ],
+  sc2:[
+    {t:'92 Million Jobs.',cls:'cin-stat',group:1},
+    {t:'Will be displaced by AI by 2030.',cls:'cin-normal',group:1},
+    {t:'— World Economic Forum, 2025',cls:'cin-source',group:1},
+    {t:'Only 1 in 6 people.',cls:'cin-stat',group:2},
+    {t:'Have even tried AI.',cls:'cin-normal',group:2},
+    {t:'— Microsoft AI Report, 2025',cls:'cin-source',group:2},
+    {t:'30% of all jobs.',cls:'cin-stat',group:3},
+    {t:'Could be automated by the end of this decade.',cls:'cin-normal',group:3},
+    {t:'— PwC',cls:'cin-source',group:3},
+    {t:'',cls:'cin-space',group:0},
+    {t:'The world is not waiting for you.',cls:'cin-blue',group:4}
+  ]
+};
+var sc3Lines=[
+  {t:'But with every new tech evolution...',cls:'cin-normal',delay:800},
+  {t:'comes great opportunity.',cls:'cin-blue',delay:3000},
+  {t:'',cls:'cin-space',delay:0},
+  {t:'This is YOURS.',cls:'cin-big',delay:6500}
+];
+
+// SC1 last line at 9200ms → auto-advance at 12000ms
+// SC2 last line at 10500ms → auto-advance at 13500ms
+// SC3 last line at 5500ms → waitlist button at 7800ms
+
+var SC1_DURATION = 12000;
+var SC2_DURATION = 13500;
+
+function goToScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){
+    s.classList.remove('active');
+    s.style.opacity='';
+    s.style.transition='';
+  });
+  document.getElementById(id).classList.add('active');
+}
+
+function crossFade(fromId, toId, callback){
+  var from=document.getElementById(fromId);
+  var to=document.getElementById(toId);
+  // Fade out current
+  from.style.transition='opacity 0.8s ease';
+  from.style.opacity='0';
+  setTimeout(function(){
+    from.classList.remove('active');
+    from.style.opacity='';
+    from.style.transition='';
+    // Fade in next
+    to.style.opacity='0';
+    to.classList.add('active');
+    setTimeout(function(){
+      to.style.transition='opacity 2.5s ease';
+      to.style.opacity='1';
+      if(callback)callback();
+    },50);
+  },800);
+}
+
+function runSc1(){
+  var container=document.getElementById('sc1content');container.innerHTML='';
+  cinContent.sc1.forEach(function(line){
+    var el=document.createElement('div');el.className=line.cls+' cin-line';el.textContent=line.t;container.appendChild(el);
+    if(line.delay>0){setTimeout(function(){el.classList.add('visible');},line.delay);}
+  });
+  // Auto-advance to sc2
+  setTimeout(function(){crossFade('sc1','sc2',runSc2);},SC1_DURATION);
+}
+
+function runSc2(){
+  var container=document.getElementById('sc2content');container.innerHTML='';
+  var groupDelays={1:800,2:4000,3:7200,4:10500};
+  cinContent.sc2.forEach(function(line){
+    var el=document.createElement('div');el.className=line.cls+' cin-line';el.textContent=line.t;container.appendChild(el);
+    var dd=groupDelays[line.group]||0;
+    if(dd>0){setTimeout(function(){el.classList.add('visible');},dd);}
+  });
+  // Auto-advance to sc3
+  setTimeout(function(){crossFade('sc2','sc3',runSc3);},SC2_DURATION);
+}
+
+function runSc3(){
+  var container=document.getElementById('sc3content');container.innerHTML='';
+  sc3Lines.forEach(function(line){
+    var el=document.createElement('div');el.className=line.cls+' cin-line';el.textContent=line.t;container.appendChild(el);
+    if(line.delay>0){setTimeout(function(){el.classList.add('visible');},line.delay);}
+  });
+  // Waitlist button appears
+  setTimeout(function(){
+    document.getElementById('waitlistBtn').classList.add('visible');
+  },8800);
+}
+
+// AUDIO
+var archieAudio=null;var audioStarted=false;
+function initAudio(){
+  if(audioStarted)return;audioStarted=true;
+  archieAudio=document.getElementById('cinAudio');if(!archieAudio)return;
+  archieAudio.currentTime=0.5;
+  archieAudio.volume=0;
+  archieAudio.play().then(function(){
+    var vol=0;var fi=setInterval(function(){vol=Math.min(vol+0.015,0.7);archieAudio.volume=vol;if(vol>=0.7)clearInterval(fi);},80);
+  }).catch(function(e){console.log('Audio blocked:',e);});
+}
+
+function startExperience(){
+  initAudio();
+  var isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  var cinDelay=isMobile?800:50;
+  setTimeout(function(){document.getElementById('wordmark').style.opacity='1';},1200);
+  var splash=document.getElementById('splash');
+  splash.style.transition='opacity 0.6s ease';
+  splash.style.opacity='0';
+  setTimeout(function(){
+    splash.classList.remove('active');
+    splash.style.opacity='';
+    splash.style.transition='';
+    var sc1=document.getElementById('sc1');
+    sc1.style.opacity='0';
+    sc1.classList.add('active');
+    setTimeout(function(){
+      sc1.style.transition='opacity 3.5s ease';
+      sc1.style.opacity='1';
+      runSc1();
+    },cinDelay);
+  },600);
+}
+
+// MODAL
+function openModal(){document.getElementById('modal').classList.add('active');}
+function closeModal(){document.getElementById('modal').classList.remove('active');}
+document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
+
+// SUBMIT
+async function submitWaitlist(){
+  var fname=document.getElementById('fname').value.trim();
+  var email=document.getElementById('email').value.trim();
+  if(!fname){alert('Please enter your first name.');return;}
+  if(!email||!email.includes('@')){alert('Please enter a valid email.');return;}
+  var btn=document.getElementById('join-btn');
+  btn.disabled=true;btn.textContent='Joining...';
+
+  var SB_URL='YOUR_SUPABASE_URL';
+  var SB_KEY='YOUR_SUPABASE_ANON_KEY';
+  try{
+    var src=document.referrer.includes('tiktok')?'tiktok':document.referrer.includes('instagram')?'instagram':document.referrer.includes('youtube')?'youtube':'direct';
+    await fetch(SB_URL+'/rest/v1/waitlist',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=minimal'},
+      body:JSON.stringify({first_name:fname,email:email,source:src})
+    });
+  }catch(e){console.log('Supabase not configured.');}
+
+  document.getElementById('step-join').style.display='none';
+  document.getElementById('step-success').style.display='block';
+  document.getElementById('success-name').textContent='You\'re in, '+fname+'. Your AI journey starts soon.';
+}
+
+// SHARE
+var SITE_URL=window.location.href.split('?')[0];
+var SHARE_MSG='I just joined the waitlist for Archie — an app that helps beginners learn AI. Check it out: '+SITE_URL;
+function shareTwitter(){window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(SHARE_MSG),'_blank');}
+function copyAndInstagram(){navigator.clipboard.writeText(SHARE_MSG).then(function(){showCopied();alert('Link copied! Paste it in your Instagram story or bio.');});}
+function copyLink(){navigator.clipboard.writeText(SHARE_MSG).then(showCopied);}
+function showCopied(){
+  var btn=document.getElementById('copyBtn');
+  btn.textContent='Copied ✓';
+  btn.style.borderColor='#4A90E2';
+  btn.style.color='#93C5FD';
+  setTimeout(function(){
+    btn.textContent='Copy link to share';
+    btn.style.borderColor='';
+    btn.style.color='';
+  },2500);
+}
+</script>
+</body>
+</html>
